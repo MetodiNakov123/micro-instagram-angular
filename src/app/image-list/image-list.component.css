@@ -1,0 +1,42 @@
+.container{
+    margin-top: 15px;
+}
+
+h1 {
+    text-align: center;
+}
+
+.images {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 25px;
+    padding: 15px;
+}
+
+.card-image {
+    padding-left: 15px;
+    padding-right: 15px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    transition: transform 0.2s;
+}
+
+.card-image:hover {
+    transform: scale(1.05);
+}
+
+mat-card-title {
+    font-size: 20px;
+    font-weight: bold;
+    padding-bottom: 20px;
+}
+
+::ng-deep .delete-button {
+    color: #ff4081 !important;
+}
+
+.pagination-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 15px;      
+}

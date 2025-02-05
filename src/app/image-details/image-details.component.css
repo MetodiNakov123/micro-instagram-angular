@@ -1,0 +1,19 @@
+.container{
+    margin-top: 15px;
+    padding-bottom: 15px;
+}
+
+img{
+    margin: 20px 0;
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+.field-error {
+    border: 1px solid red
+}
+
+.delete-button{
+    margin-top: 10px;
+}
