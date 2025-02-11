@@ -14,6 +14,7 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
+import { Observable, switchMap, catchError, EMPTY, filter, map, tap } from 'rxjs';
 
 @Component({
   selector: 'app-image-list',
@@ -35,7 +36,7 @@ export class ImageListComponent implements OnInit{
   @ViewChild('scrollAnchor') scrollAnchor: any;
 
   title: string = "Micro Instagram";
-  images: Image[] = [];
+  images$: Observable<Image[]> = EMPTY;
   currentPage: number = 1;
   limit: number = 10;
   totalItems: number = 5000;
@@ -46,23 +47,32 @@ export class ImageListComponent implements OnInit{
   {}
 
   ngOnInit() {
-    this.route.queryParams.subscribe(params => {
-      this.currentPage = Number(params['page']) || 1;
-      this.limit = Number(params['limit']) || 10;
-      this.loadImages();
-    });
+    this.images$ = this.route.queryParams
+      .pipe(
+        switchMap(params => {
+          this.currentPage = +params['page'] || 1;
+          this.limit = +params['limit'] || 10;
+          return this.dataService.getImages(this.currentPage, this.limit)
+            .pipe(
+              catchError(error => {
+                console.log('Error loading images!', error);
+                return EMPTY;
+              })
+            )
+        })
+      );
+      this.scrollToTop();
   }
 
   loadImages(){
-    this.dataService.getImages(this.currentPage, this.limit).subscribe({
-      next: (data) => {
-        this.images = data;
-        this.scrollToTop();
-      },
-      error: (error) => {
-        console.log('Error loading images!', error);
-      }
-    });
+    this.images$ = this.dataService.getImages(this.currentPage, this.limit)
+      .pipe(
+        catchError(error => {
+          console.log('Error loading images!', error);
+          return EMPTY;
+        })
+      );
+    this.scrollToTop();
   }
 
   onPageChanged(event: any){
@@ -82,25 +92,23 @@ export class ImageListComponent implements OnInit{
       data: { message: `Are you sure you want to delete?` }
     });
 
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.dataService.deleteImage(item.id.toString()).subscribe({
-          next: (v) => {
+    dialogRef.afterClosed().pipe(
+      filter(result => Boolean(result)),
+      switchMap(() => this.dataService.deleteImage(item.id.toString())
+        .pipe(
+          tap(() => {
             console.log(`Deleted: ${item.title}`);
             this.showSnackBar("Successfully deleted!");
-            //this.loadImages();
-          },
-          error: (e) => {
-            console.log('error: ', e);
+            this.images$ = this.images$.pipe(
+              map(images => images.filter(image => image.id !== item.id)))
+          }),
+          catchError(error => {
+            console.log('Error: ', error);
             this.showSnackBar('Unsuccessful deletion!!!');
-          },
-          complete: () => {
-            console.info('complete');
-            this.images = this.images.filter(image => image.id !== item.id);
-          }
-        });
-      }
-    });
+            return EMPTY;
+          })
+        ))
+    ).subscribe();
   }
 
   showSnackBar(message: string) {

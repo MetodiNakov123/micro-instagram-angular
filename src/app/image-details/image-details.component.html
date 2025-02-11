@@ -4,10 +4,10 @@
     <button class="btn btn-primary" (click)="goBack()">Back</button>
     
     <!--<img *ngIf="imageDetails" src="https://material.angular.io/assets/img/examples/shiba2.jpg" [alt]="'Photo of ' +  imageDetails.title"> -->
-    <img *ngIf="imageDetails" [src]="imageDetails.url" [alt]="'Photo of ' +  imageDetails.title">
+    <img *ngIf="imageDetails$ | async as imageDetails" [src]="imageDetails.url" [alt]="'Photo of ' +  imageDetails.title">
 
     <form #form="ngForm" (ngSubmit)="onSubmit(form)">
-        <div class="form-group" *ngIf="imageDetails">
+        <div class="form-group" *ngIf="imageDetails$ | async as imageDetails">
             <label for="title">Title</label>
             <input id="title" name="title" class="form-control" [(ngModel)]="imageDetails.title"
                 required #titleField="ngModel"
@@ -19,7 +19,7 @@
         </div>
         <br/>
 
-        <div class="form-group" *ngIf="imageDetails">
+        <div class="form-group" *ngIf="imageDetails$ | async as imageDetails">
             <label for="imageUrl">Image URL</label>
             <input id="imageUrl" name="url" class="form-control" [(ngModel)]="imageDetails.url"
                 required #imageUrlField="ngModel"
@@ -34,5 +34,5 @@
         <button class="btn btn-primary">Save</button>
     </form>
 
-    <button *ngIf="imageDetails" class="btn btn-danger delete-button" (click)="deleteItem(imageDetails)">Delete</button>
+    <button *ngIf="imageDetails$ | async as imageDetails" class="btn btn-danger delete-button" (click)="deleteItem(imageDetails)">Delete</button>
 </div>

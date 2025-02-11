@@ -10,6 +10,7 @@ import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.compone
 import { Location } from '@angular/common';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { catchError, EMPTY, filter, Observable, switchMap, tap } from 'rxjs';
 
 @Component({
   selector: 'app-image-details',
@@ -24,47 +25,50 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 })
 
 export class ImageDetailsComponent implements OnInit {
-  imageDetails: Image | undefined;
-  imageId: string = '';
+  imageDetails$: Observable<Image> = EMPTY;
 
   constructor(private dataService: DataService, private route: ActivatedRoute, 
               private snackBar: MatSnackBar, private dialog: MatDialog, private location: Location) 
   {}
 
   ngOnInit() {
-    this.route.paramMap.subscribe(params => {
-      this.imageId = params.get('id') ?? '';
-      this.getImageDetails(this.imageId);
-    });
-  }
-
-  getImageDetails(id: string){
-    this.dataService.getImageDetails(id).subscribe({
-      next: (data) => {
-        this.imageDetails = data;
-      },
-      error: (error) => {
-        console.log('error: ', error);
-        this.showSnackBar('Failed to load image details :(');
-      }
-    });
+    this.imageDetails$ = this.route.paramMap
+      .pipe(
+        switchMap(params => {
+          const imageId = params.get('id') ?? '';
+          console.log('id :', imageId);
+          return this.dataService.getImageDetails(imageId)
+            .pipe(
+              tap(image => console.log('image details: ', image)),
+              catchError(error => {
+                console.log('error: ', error);
+                this.showSnackBar('Failed to load image details :(');
+                return EMPTY;
+              })
+            )
+        })
+      )
   }
 
   onSubmit(form: NgForm){
     console.log('in onSubmit: ', form.valid);
 
-    if (this.imageDetails && form.valid){
-      this.dataService.updateImage(this.imageDetails).subscribe({
-        next: (v) => {
-          console.log('next: ', v);
-          this.showSnackBar('Successfully saved!');
-        },
-        error: (e) => {
-          console.log('error: ', e);
-          this.showSnackBar('Save failed!!!');
-        },
-        complete: () => console.info('complete') 
-      });
+    if (form.valid){
+      this.imageDetails$.pipe(
+        switchMap(imageDetails => {
+          return this.dataService.updateImage(imageDetails).pipe(
+            tap(image => {
+              console.log('Saved image: ', image);
+              this.showSnackBar('Successfully saved!');
+            }),
+            catchError(error => {
+              console.log('error: ', error);
+              this.showSnackBar('Save failed!!!');
+              return EMPTY;
+            })
+          )
+        })
+      ).subscribe();
     }
   }
 
@@ -74,22 +78,23 @@ export class ImageDetailsComponent implements OnInit {
       data: { message: `Are you sure you want to delete?` }
     });
 
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.dataService.deleteImage(item.id.toString()).subscribe({
-          next: (v) => {
-            console.log(`Deleted: ${item.title}`);
-            this.showSnackBar("Successfully deleted!");
-            this.goBack();
-          },
-          error: (e) => {
-            console.log('error: ', e);
-            this.showSnackBar('Unsuccessful deletion!!!');
-          },
-          complete: () => console.info('complete')
-        });
-      }
-    });
+    dialogRef.afterClosed().pipe(
+      filter(result => Boolean(result)),
+      switchMap(() => this.dataService.deleteImage(item.id.toString())
+          .pipe(
+            tap(() => {
+              console.log(`Deleted: ${item.title}`);
+              this.showSnackBar("Successfully deleted!");
+              this.goBack();
+            }),
+            catchError(error => {
+              console.log('Error: ', error);
+              this.showSnackBar('Unsuccessful deletion!!!');
+              return EMPTY;
+            })
+          )
+      )
+    ).subscribe();
   }
 
   goBack() {
