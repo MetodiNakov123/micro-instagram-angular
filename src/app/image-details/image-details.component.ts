@@ -11,7 +11,9 @@ import { Location } from '@angular/common';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { catchError, EMPTY, filter, Observable, switchMap, tap } from 'rxjs';
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
+@UntilDestroy()
 @Component({
   selector: 'app-image-details',
   imports: [
@@ -55,6 +57,7 @@ export class ImageDetailsComponent implements OnInit {
 
     if (form.valid){
       this.imageDetails$.pipe(
+        untilDestroyed(this),
         switchMap(imageDetails => {
           return this.dataService.updateImage(imageDetails).pipe(
             tap(image => {
@@ -79,6 +82,7 @@ export class ImageDetailsComponent implements OnInit {
     });
 
     dialogRef.afterClosed().pipe(
+      untilDestroyed(this),
       filter(result => Boolean(result)),
       switchMap(() => this.dataService.deleteImage(item.id.toString())
           .pipe(

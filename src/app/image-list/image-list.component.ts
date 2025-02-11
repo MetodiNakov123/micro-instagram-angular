@@ -15,7 +15,9 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
 import { Observable, switchMap, catchError, EMPTY, filter, map, tap } from 'rxjs';
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
+@UntilDestroy()
 @Component({
   selector: 'app-image-list',
   imports: [
@@ -93,6 +95,7 @@ export class ImageListComponent implements OnInit{
     });
 
     dialogRef.afterClosed().pipe(
+      untilDestroyed(this),
       filter(result => Boolean(result)),
       switchMap(() => this.dataService.deleteImage(item.id.toString())
         .pipe(
