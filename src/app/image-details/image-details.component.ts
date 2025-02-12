@@ -1,7 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, NgForm, NgModel } from '@angular/forms';
-import { Image } from '../data/image';
+import { FormGroup, FormsModule } from '@angular/forms';
 import { DataService } from '../data/data.service';
 import { ActivatedRoute } from '@angular/router';
 import { RouterModule } from '@angular/router';
@@ -12,6 +11,8 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { catchError, EMPTY, filter, Observable, switchMap, tap } from 'rxjs';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder } from '@angular/forms';
 
 @UntilDestroy()
 @Component({
@@ -20,28 +21,42 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
     CommonModule,
     FormsModule,
     RouterModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    ReactiveFormsModule
   ],
   templateUrl: './image-details.component.html',
   styleUrl: './image-details.component.css'
 })
 
 export class ImageDetailsComponent implements OnInit {
-  imageDetails$: Observable<Image> = EMPTY;
+  imageDetails: FormGroup;
 
-  constructor(private dataService: DataService, private route: ActivatedRoute, 
-              private snackBar: MatSnackBar, private dialog: MatDialog, private location: Location) 
-  {}
+  constructor(private dataService: DataService, private route: ActivatedRoute, private snackBar: MatSnackBar,
+              private dialog: MatDialog, private location: Location, private formBuilder: FormBuilder) 
+  {
+     this.imageDetails = this.formBuilder.nonNullable.group({
+      albumId: 0,
+      id: 0,
+      title: '',
+      url: '',
+      thumbnailUrl: ''
+     })
+  }
 
   ngOnInit() {
-    this.imageDetails$ = this.route.paramMap
+    this.route.paramMap
       .pipe(
+        untilDestroyed(this),
         switchMap(params => {
           const imageId = params.get('id') ?? '';
           console.log('id :', imageId);
           return this.dataService.getImageDetails(imageId)
             .pipe(
-              tap(image => console.log('image details: ', image)),
+              tap(image => {
+                console.log('image details: ', image);
+                this.imageDetails.setValue(image)
+                console.log('form group: ', this.imageDetails.value);
+              }),
               catchError(error => {
                 console.log('error: ', error);
                 this.showSnackBar('Failed to load image details :(');
@@ -49,17 +64,13 @@ export class ImageDetailsComponent implements OnInit {
               })
             )
         })
-      )
+      ).subscribe();
   }
 
-  onSubmit(form: NgForm){
-    console.log('in onSubmit: ', form.valid);
-
-    if (form.valid){
-      this.imageDetails$.pipe(
-        untilDestroyed(this),
-        switchMap(imageDetails => {
-          return this.dataService.updateImage(imageDetails).pipe(
+  onSubmit(){
+    //if (form.valid){
+      this.dataService.updateImage(this.imageDetails.value).pipe(
+            untilDestroyed(this),
             tap(image => {
               console.log('Saved image: ', image);
               this.showSnackBar('Successfully saved!');
@@ -69,13 +80,11 @@ export class ImageDetailsComponent implements OnInit {
               this.showSnackBar('Save failed!!!');
               return EMPTY;
             })
-          )
-        })
       ).subscribe();
-    }
+    //}
   }
 
-  deleteItem(item: Image): void {
+  deleteItem(): void {
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
       width: '300px',
       data: { message: `Are you sure you want to delete?` }
@@ -84,10 +93,10 @@ export class ImageDetailsComponent implements OnInit {
     dialogRef.afterClosed().pipe(
       untilDestroyed(this),
       filter(result => Boolean(result)),
-      switchMap(() => this.dataService.deleteImage(item.id.toString())
+      switchMap(() => this.dataService.deleteImage(this.imageDetails.get('id')?.value.toString())
           .pipe(
             tap(() => {
-              console.log(`Deleted: ${item.title}`);
+              console.log(`Deleted: ${this.imageDetails.value.title}`);
               this.showSnackBar("Successfully deleted!");
               this.goBack();
             }),

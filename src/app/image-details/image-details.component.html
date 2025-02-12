@@ -2,37 +2,24 @@
     <h2>Details</h2>
 
     <button class="btn btn-primary" (click)="goBack()">Back</button>
-    
-    <!--<img *ngIf="imageDetails" src="https://material.angular.io/assets/img/examples/shiba2.jpg" [alt]="'Photo of ' +  imageDetails.title"> -->
-    <img *ngIf="imageDetails$ | async as imageDetails" [src]="imageDetails.url" [alt]="'Photo of ' +  imageDetails.title">
 
-    <form #form="ngForm" (ngSubmit)="onSubmit(form)">
-        <div class="form-group" *ngIf="imageDetails$ | async as imageDetails">
+    <form [formGroup]="imageDetails" (ngSubmit)="onSubmit()" class="form-group">
+        <img *ngIf="imageDetails.get('url')?.value" [src]="imageDetails.get('url')?.value" [alt]="'Photo of ' +  imageDetails.get('title')?.value">
+
+        <div>
             <label for="title">Title</label>
-            <input id="title" name="title" class="form-control" [(ngModel)]="imageDetails.title"
-                required #titleField="ngModel"
-                [class.field-error]="form.submitted && titleField.invalid" />
-            <div [hidden]="!form.submitted || titleField.valid"
-                 class="alert alert-danger">
-                 Enter a title!
-            </div>
+            <input id="title" name="title" class="form-control" formControlName="title" required />
         </div>
         <br/>
 
-        <div class="form-group" *ngIf="imageDetails$ | async as imageDetails">
+        <div>
             <label for="imageUrl">Image URL</label>
-            <input id="imageUrl" name="url" class="form-control" [(ngModel)]="imageDetails.url"
-                required #imageUrlField="ngModel"
-                [class.field-error]="form.submitted && imageUrlField.invalid" />
-            <div [hidden]="!form.submitted || imageUrlField.valid"
-                 class="alert alert-danger">
-                 Enter a image url!
-            </div>
+            <input id="imageUrl" name="url" class="form-control" formControlName="url" required />
         </div>
         <br/>
 
-        <button class="btn btn-primary">Save</button>
+        <button type="submit" class="btn btn-primary">Save</button>
     </form>
 
-    <button *ngIf="imageDetails$ | async as imageDetails" class="btn btn-danger delete-button" (click)="deleteItem(imageDetails)">Delete</button>
+    <button class="btn btn-danger delete-button" (click)="deleteItem()">Delete</button>
 </div>
