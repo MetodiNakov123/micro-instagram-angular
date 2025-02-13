@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormGroup, FormsModule } from '@angular/forms';
+import { FormGroup, FormsModule, Validators } from '@angular/forms';
 import { DataService } from '../data/data.service';
 import { ActivatedRoute } from '@angular/router';
 import { RouterModule } from '@angular/router';
@@ -37,8 +37,8 @@ export class ImageDetailsComponent implements OnInit {
      this.imageDetails = this.formBuilder.nonNullable.group({
       albumId: 0,
       id: 0,
-      title: '',
-      url: '',
+      title: ['', Validators.required],
+      url: ['', [Validators.required, Validators.minLength(5)]],
       thumbnailUrl: ''
      })
   }
@@ -68,7 +68,6 @@ export class ImageDetailsComponent implements OnInit {
   }
 
   onSubmit(){
-    //if (form.valid){
       this.dataService.updateImage(this.imageDetails.value).pipe(
             untilDestroyed(this),
             tap(image => {
@@ -81,7 +80,6 @@ export class ImageDetailsComponent implements OnInit {
               return EMPTY;
             })
       ).subscribe();
-    //}
   }
 
   deleteItem(): void {
@@ -120,5 +118,13 @@ export class ImageDetailsComponent implements OnInit {
       horizontalPosition: 'center', 
       verticalPosition: 'bottom'
     });
+  }
+
+  get title(){
+    return this.imageDetails.controls['title'];
+  }
+
+  get imageUrl(){
+    return this.imageDetails.controls['url'];
   }
 }

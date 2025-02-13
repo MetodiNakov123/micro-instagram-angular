@@ -8,17 +8,20 @@
 
         <div>
             <label for="title">Title</label>
-            <input id="title" name="title" class="form-control" formControlName="title" required />
+            <input id="title" class="form-control" formControlName="title" [class.error]="title.invalid && title.touched"/>
+            <em *ngIf="title.invalid && title.touched"> Please enter a title! </em>
         </div>
         <br/>
 
         <div>
             <label for="imageUrl">Image URL</label>
-            <input id="imageUrl" name="url" class="form-control" formControlName="url" required />
+            <input id="imageUrl" class="form-control" formControlName="url" [class.error]="imageUrl.invalid && imageUrl.touched"/>
+            <em *ngIf="imageUrl.errors?.['required'] && imageUrl.touched"> Please enter an image url! </em>
+            <em *ngIf="imageUrl.errors?.['minlength'] && imageUrl.touched"> Image url must be at least 5 characters </em>
         </div>
         <br/>
 
-        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="submit" class="btn btn-primary" [disabled]="imageDetails.invalid">Save</button>
     </form>
 
     <button class="btn btn-danger delete-button" (click)="deleteItem()">Delete</button>
