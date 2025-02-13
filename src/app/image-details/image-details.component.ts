@@ -1,7 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, NgForm, NgModel } from '@angular/forms';
-import { Image } from '../data/image';
+import { FormGroup, FormsModule, Validators } from '@angular/forms';
 import { DataService } from '../data/data.service';
 import { ActivatedRoute } from '@angular/router';
 import { RouterModule } from '@angular/router';
@@ -10,86 +9,103 @@ import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.compone
 import { Location } from '@angular/common';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { catchError, EMPTY, filter, Observable, switchMap, tap } from 'rxjs';
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder } from '@angular/forms';
 
+@UntilDestroy()
 @Component({
   selector: 'app-image-details',
   imports: [
     CommonModule,
     FormsModule,
     RouterModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    ReactiveFormsModule
   ],
   templateUrl: './image-details.component.html',
   styleUrl: './image-details.component.css'
 })
 
 export class ImageDetailsComponent implements OnInit {
-  imageDetails: Image | undefined;
-  imageId: string = '';
+  imageDetails: FormGroup;
 
-  constructor(private dataService: DataService, private route: ActivatedRoute, 
-              private snackBar: MatSnackBar, private dialog: MatDialog, private location: Location) 
-  {}
+  constructor(private dataService: DataService, private route: ActivatedRoute, private snackBar: MatSnackBar,
+              private dialog: MatDialog, private location: Location, private formBuilder: FormBuilder) 
+  {
+     this.imageDetails = this.formBuilder.nonNullable.group({
+      albumId: 0,
+      id: 0,
+      title: ['', Validators.required],
+      url: ['', [Validators.required, Validators.minLength(5)]],
+      thumbnailUrl: ''
+     })
+  }
 
   ngOnInit() {
-    this.route.paramMap.subscribe(params => {
-      this.imageId = params.get('id') ?? '';
-      this.getImageDetails(this.imageId);
-    });
+    this.route.paramMap
+      .pipe(
+        untilDestroyed(this),
+        switchMap(params => {
+          const imageId = params.get('id') ?? '';
+          console.log('id :', imageId);
+          return this.dataService.getImageDetails(imageId)
+            .pipe(
+              tap(image => {
+                console.log('image details: ', image);
+                this.imageDetails.setValue(image)
+                console.log('form group: ', this.imageDetails.value);
+              }),
+              catchError(error => {
+                console.log('error: ', error);
+                this.showSnackBar('Failed to load image details :(');
+                return EMPTY;
+              })
+            )
+        })
+      ).subscribe();
   }
 
-  getImageDetails(id: string){
-    this.dataService.getImageDetails(id).subscribe({
-      next: (data) => {
-        this.imageDetails = data;
-      },
-      error: (error) => {
-        console.log('error: ', error);
-        this.showSnackBar('Failed to load image details :(');
-      }
-    });
+  onSubmit(){
+      this.dataService.updateImage(this.imageDetails.value).pipe(
+            untilDestroyed(this),
+            tap(image => {
+              console.log('Saved image: ', image);
+              this.showSnackBar('Successfully saved!');
+            }),
+            catchError(error => {
+              console.log('error: ', error);
+              this.showSnackBar('Save failed!!!');
+              return EMPTY;
+            })
+      ).subscribe();
   }
 
-  onSubmit(form: NgForm){
-    console.log('in onSubmit: ', form.valid);
-
-    if (this.imageDetails && form.valid){
-      this.dataService.updateImage(this.imageDetails).subscribe({
-        next: (v) => {
-          console.log('next: ', v);
-          this.showSnackBar('Successfully saved!');
-        },
-        error: (e) => {
-          console.log('error: ', e);
-          this.showSnackBar('Save failed!!!');
-        },
-        complete: () => console.info('complete') 
-      });
-    }
-  }
-
-  deleteItem(item: Image): void {
+  deleteItem(): void {
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
       width: '300px',
       data: { message: `Are you sure you want to delete?` }
     });
 
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.dataService.deleteImage(item.id.toString()).subscribe({
-          next: (v) => {
-            console.log(`Deleted: ${item.title}`);
-            this.showSnackBar("Successfully deleted!");
-            this.goBack();
-          },
-          error: (e) => {
-            console.log('error: ', e);
-            this.showSnackBar('Unsuccessful deletion!!!');
-          },
-          complete: () => console.info('complete')
-        });
-      }
-    });
+    dialogRef.afterClosed().pipe(
+      untilDestroyed(this),
+      filter(result => Boolean(result)),
+      switchMap(() => this.dataService.deleteImage(this.imageDetails.get('id')?.value.toString())
+          .pipe(
+            tap(() => {
+              console.log(`Deleted: ${this.imageDetails.value.title}`);
+              this.showSnackBar("Successfully deleted!");
+              this.goBack();
+            }),
+            catchError(error => {
+              console.log('Error: ', error);
+              this.showSnackBar('Unsuccessful deletion!!!');
+              return EMPTY;
+            })
+          )
+      )
+    ).subscribe();
   }
 
   goBack() {
@@ -102,5 +118,13 @@ export class ImageDetailsComponent implements OnInit {
       horizontalPosition: 'center', 
       verticalPosition: 'bottom'
     });
+  }
+
+  get title(){
+    return this.imageDetails.controls['title'];
+  }
+
+  get imageUrl(){
+    return this.imageDetails.controls['url'];
   }
 }

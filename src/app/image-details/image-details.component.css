@@ -10,7 +10,12 @@ img{
     height: auto;
 }
 
-.field-error {
+em{
+    color: red;
+    margin-top: 5px;
+}
+
+.error{
     border: 1px solid red
 }
 

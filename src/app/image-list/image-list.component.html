@@ -2,7 +2,7 @@
     <h1>{{ title }}</h1>
 
     <div class="images">
-        <mat-card *ngFor="let image of images" class="card-image" appearance="outlined">
+        <mat-card *ngFor="let image of images$ | async" class="card-image" appearance="outlined">
         <mat-card-header>
             <mat-card-title>{{ image.title }}</mat-card-title>
         </mat-card-header>
