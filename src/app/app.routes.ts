@@ -7,6 +7,7 @@ import { ValidIdGuard } from './guards/valid-id.guard';
 export const routes: Routes = [
     { path: '', pathMatch: 'full', redirectTo: 'images' },
     { path: 'images', component: ImageListComponent },
+    { path: 'images/create', component: ImageDetailsComponent },
     { path: 'images/:id', component: ImageDetailsComponent, canActivate: [ValidIdGuard] },
     { path: '**', pathMatch: 'full', component: PageNotFoundComponent }
 ];

@@ -1,6 +1,8 @@
 <div class="container">
     <h1>{{ title }}</h1>
 
+    <button class="btn btn-primary btn-create" (click)="createNewItem()">Create new</button>
+
     <div class="images">
         <mat-card *ngFor="let image of images$ | async" class="card-image" appearance="outlined">
         <mat-card-header>

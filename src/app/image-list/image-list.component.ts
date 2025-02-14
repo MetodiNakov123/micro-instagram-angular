@@ -88,6 +88,10 @@ export class ImageListComponent implements OnInit{
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  createNewItem(){
+    this.router.navigate(['/images/create']);
+  }
+
   deleteItem(item: Image): void {
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
       width: '300px',
@@ -97,20 +101,28 @@ export class ImageListComponent implements OnInit{
     dialogRef.afterClosed().pipe(
       untilDestroyed(this),
       filter(result => Boolean(result)),
-      switchMap(() => this.dataService.deleteImage(item.id.toString())
-        .pipe(
-          tap(() => {
-            console.log(`Deleted: ${item.title}`);
-            this.showSnackBar("Successfully deleted!");
-            this.images$ = this.images$.pipe(
-              map(images => images.filter(image => image.id !== item.id)))
-          }),
-          catchError(error => {
-            console.log('Error: ', error);
-            this.showSnackBar('Unsuccessful deletion!!!');
+      switchMap(() => {
+        if (item.id) {
+          return this.dataService.deleteImage(item.id.toString())
+            .pipe(
+              tap(() => {
+                console.log(`Deleted: ${item.title}`);
+                this.showSnackBar("Successfully deleted!");
+                this.images$ = this.images$.pipe(
+                  map(images => images.filter(image => image.id !== item.id)))
+              }),
+              catchError(error => {
+                console.log('Error: ', error);
+                this.showSnackBar('Unsuccessful deletion!!!');
+                return EMPTY;
+              })
+            )
+          }
+          else {
             return EMPTY;
-          })
-        ))
+          }
+        }
+      )
     ).subscribe();
   }
 
