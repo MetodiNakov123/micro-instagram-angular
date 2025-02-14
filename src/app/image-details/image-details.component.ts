@@ -30,13 +30,14 @@ import { FormBuilder } from '@angular/forms';
 
 export class ImageDetailsComponent implements OnInit {
   imageDetails: FormGroup;
+  imageId: number | null = null;
 
   constructor(private dataService: DataService, private route: ActivatedRoute, private snackBar: MatSnackBar,
               private dialog: MatDialog, private location: Location, private formBuilder: FormBuilder) 
   {
      this.imageDetails = this.formBuilder.nonNullable.group({
       albumId: 0,
-      id: 0,
+      id: <number | null> null,
       title: ['', Validators.required],
       url: ['', [Validators.required, Validators.minLength(5)]],
       thumbnailUrl: ''
@@ -48,9 +49,11 @@ export class ImageDetailsComponent implements OnInit {
       .pipe(
         untilDestroyed(this),
         switchMap(params => {
-          const imageId = params.get('id') ?? '';
-          console.log('id :', imageId);
-          return this.dataService.getImageDetails(imageId)
+          if (params.get('id'))
+          {
+            this.imageId = Number(params.get('id'));
+            console.log('id :', this.imageId);
+            return this.dataService.getImageDetails(this.imageId.toString())
             .pipe(
               tap(image => {
                 console.log('image details: ', image);
@@ -63,11 +66,14 @@ export class ImageDetailsComponent implements OnInit {
                 return EMPTY;
               })
             )
+          }
+          return EMPTY;
         })
       ).subscribe();
   }
 
   onSubmit(){
+    if (this.imageId){
       this.dataService.updateImage(this.imageDetails.value).pipe(
             untilDestroyed(this),
             tap(image => {
@@ -80,6 +86,22 @@ export class ImageDetailsComponent implements OnInit {
               return EMPTY;
             })
       ).subscribe();
+    }
+    else{
+      this.dataService.createImage(this.imageDetails.value).pipe(
+        untilDestroyed(this),
+        tap(image => {
+          console.log('Created image: ', image);
+          this.showSnackBar('Successfully created!');
+          this.goBack();
+        }),
+        catchError(error => {
+          console.log('error: ', error);
+          this.showSnackBar('Creation failed!!!');
+          return EMPTY;
+        })
+      ).subscribe();
+    }
   }
 
   deleteItem(): void {

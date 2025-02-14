@@ -24,5 +24,5 @@
         <button type="submit" class="btn btn-primary" [disabled]="imageDetails.invalid">Save</button>
     </form>
 
-    <button class="btn btn-danger delete-button" (click)="deleteItem()">Delete</button>
+    <button *ngIf="imageId" class="btn btn-danger delete-button" (click)="deleteItem()">Delete</button>
 </div>

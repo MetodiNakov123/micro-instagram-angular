@@ -23,6 +23,11 @@ export class DataService {
     return this.http.get<Image>(url);
   }
 
+  // POST
+  createImage(image: Image) : Observable<Image>{
+    return this.http.post<Image>(this.baseUrl, image);
+  }
+
   // PUT
   updateImage(image: Image) : Observable<Image>{
     const url = `${this.baseUrl}/${image.id}`;
